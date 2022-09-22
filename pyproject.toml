@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "travieso"
+version = "0.1.0"
+description = "Retrieve potentially sensitive information from the public Travis CI API"
+authors = ["Helio Machado <0x2b3bfa0@googlemail.com>"]
+license = "AGPL-3.0-only"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.28.1"
+joblib = "^1.2.0"
+typer = "^0.6.1"
+requests-toolbelt = "^0.9.1"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+travieso = 'travieso:application'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
