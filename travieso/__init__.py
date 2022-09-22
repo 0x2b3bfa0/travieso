@@ -1,11 +1,11 @@
-import json
-
+from json import dump
 from pathlib import Path
-from typer import Typer, Option
+from typing import Iterator
+
 from joblib import Parallel, delayed
+from typer import Argument, Option, Typer
 
-from .travis import Travis, TravisHost
-
+from .travis import Travis, TravisDomain
 
 application = Typer(add_completion=False)
 
@@ -13,9 +13,9 @@ application = Typer(add_completion=False)
 @application.command()
 def main(
     owner: str,
+    repository: str = Argument(""),
     output: Path = Option(
         ...,
-        exists=False,
         file_okay=False,
         dir_okay=True,
         writable=True,
@@ -23,25 +23,37 @@ def main(
         resolve_path=True,
     ),
     concurrency: int = 32,
-    host: TravisHost = TravisHost.COM,
+    domain: TravisDomain = Option(TravisDomain.COM, case_sensitive=False),
     token: str = "",
 ):
-    client = Travis(host, token)
+    client = Travis(domain, token)
 
     def process(build: dict):
+        directory = output / build["repository"]["slug"]
+        directory.mkdir(parents=True, exist_ok=True)
+        
         for job in client.jobs(build["id"]):
-            with open(output / f"{job['id']}.log", "w") as log:
-                log.write(client.log(job["id"]))
-            with open(output / f"{job['id']}.json", "w") as configuration:
-                json.dump(job["build"]["request"]["config"], configuration)
- 
-    def builds(owner: str) -> iter:
-        for repository in client.repositories(owner):
-            for build in client.builds(repository["id"]):
-                yield delayed(process)(build)
+            with open(directory / f"{job['id']}.log", "w") as log:
+                log.write(client.log(job["id"]) or "404")
+            with open(directory / f"{job['id']}.json", "w") as configuration:
+                dump(job["build"]["request"]["config"], configuration)
 
-    output.mkdir(parents=True, exist_ok=True)
-    Parallel(backend="threading", n_jobs=concurrency, verbose=40)(builds(owner))
+    def builds(owner: str, repository: str = "") -> Iterator[dict]:
+        if repository:
+            builds = client.builds(f"github/{owner}%2f{repository}")
+        else:
+            builds = (
+                build
+                for repository in client.repositories(owner)
+                for build in client.builds(repository["id"])
+            )
+
+        for build in builds:
+            yield delayed(process)(build)
+
+    Parallel(backend="threading", n_jobs=concurrency, verbose=40)(
+        builds(owner, repository)
+    )
 
 
 if __name__ == "__main__":

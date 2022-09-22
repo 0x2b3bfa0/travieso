@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "travieso"
-version = "0.1.0"
+version = "0.2.0"
 description = "Retrieve potentially sensitive information from the public Travis CI API"
 authors = ["Helio Machado <0x2b3bfa0@googlemail.com>"]
 license = "AGPL-3.0-only"
@@ -11,11 +11,22 @@ requests = "^2.28.1"
 joblib = "^1.2.0"
 typer = "^0.6.1"
 requests-toolbelt = "^0.9.1"
+rich = "^12.5.1"
 
 [tool.poetry.dev-dependencies]
+black = "^22.8.0"
+types-requests = "^2.28.11"
+isort = "^5.10.1"
+mypy = "^0.971"
 
 [tool.poetry.scripts]
-travieso = 'travieso:application'
+travieso = "travieso:application"
+
+[tool.black]
+line-length = 79
+
+[tool.isort]
+profile = "black"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
