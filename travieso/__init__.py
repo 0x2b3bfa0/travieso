@@ -14,29 +14,19 @@ application = Typer(add_completion=False)
 def main(
     owner: str,
     repository: str = Argument(""),
-    output: Path = Option(
-        ...,
-        file_okay=False,
-        dir_okay=True,
-        writable=True,
-        readable=True,
-        resolve_path=True,
-    ),
-    concurrency: int = 32,
+    concurrency: int = 128,
     domain: TravisDomain = Option(TravisDomain.COM, case_sensitive=False),
     token: str = "",
 ):
     client = Travis(domain, token)
 
     def process(build: dict):
-        directory = output / build["repository"]["slug"]
-        directory.mkdir(parents=True, exist_ok=True)
-        
         for job in client.jobs(build["id"]):
-            with open(directory / f"{job['id']}.log", "w") as log:
-                log.write(client.log(job["id"]) or "404")
-            with open(directory / f"{job['id']}.json", "w") as configuration:
-                dump(job["build"]["request"]["config"], configuration)
+            if log := client.log(job["id"]):
+                for line in log.split("\n"):
+                    if "ruby -S dpl" in line:
+                        print(line)
+
 
     def builds(owner: str, repository: str = "") -> Iterator[dict]:
         if repository:
